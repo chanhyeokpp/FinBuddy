@@ -24,3 +24,10 @@ Config.private.swift
 
 # Claude / local
 .claude/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+.ipynb_checkpoints/
