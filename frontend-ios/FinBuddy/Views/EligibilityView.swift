@@ -47,6 +47,9 @@ struct EligibilityView: View {
     
     // QR 모달 표시 여부 State
     @State private var isShowingQRModal = false
+    
+    // 단계별 대화형 질문용 상태 변수
+    @State private var currentStep = 1
 
     var body: some View {
         NavigationStack {
@@ -219,60 +222,178 @@ struct EligibilityView: View {
                                 .padding(.top, 10)
                             }
                         } else {
-                            // 3. 프로필 입력 화면 (Input Form Screen State)
+                            // 3. 프로필 입력 화면 (단계별 대화형 질문 카드 구조)
                             VStack(spacing: 20) {
-                                VStack(alignment: .leading, spacing: 18) {
-                                    Text("프로필 정보 입력")
-                                        .font(.headline.bold())
-                                        .foregroundStyle(.primary)
-                                    
-                                    Divider()
-                                    
-                                    Toggle("국내 거주자 (183일 이상 체류)", isOn: $vm.isResident)
-                                        .tint(.imMint)
+                                // A. 상단 단계별 프로그레스 및 이전 버튼
+                                VStack(spacing: 8) {
+                                    ProgressView(value: Double(currentStep), total: 5.0)
+                                        .tint(Color.imMint)
+                                        .scaleEffect(x: 1, y: 1.5, anchor: .center)
+                                        .padding(.horizontal)
                                     
                                     HStack {
-                                        Text("나이")
-                                            .foregroundStyle(.primary)
-                                        Spacer()
-                                        Stepper("\(vm.age)세", value: $vm.age, in: 15...100)
-                                    }
-                                    
-                                    Toggle("직전연도 근로소득 있음", isOn: $vm.hadIncomeLastYear)
-                                        .tint(.imMint)
-                                    
-                                    HStack {
-                                        Text("소득 유형")
-                                            .foregroundStyle(.primary)
-                                        Spacer()
-                                        Picker("소득 유형", selection: $vm.incomeType) {
-                                            ForEach(IncomeType.allCases) { Text($0.rawValue).tag($0) }
+                                        if currentStep > 1 {
+                                            Button {
+                                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                                    // Q5에서 소득이 없었던 경우 Q3로 즉시 백래시 처리
+                                                    if currentStep == 5 && !vm.hadIncomeLastYear {
+                                                        currentStep = 3
+                                                    } else {
+                                                        currentStep -= 1
+                                                    }
+                                                }
+                                            } label: {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "arrow.left")
+                                                        .font(.system(size: 11, weight: .bold))
+                                                    Text("이전 질문")
+                                                        .font(.system(size: 11, weight: .bold))
+                                                }
+                                                .foregroundStyle(Color.imMint)
+                                            }
+                                        } else {
+                                            Spacer().frame(width: 50)
                                         }
-                                        .pickerStyle(.menu)
-                                        .tint(.imMint)
+                                        Spacer()
+                                        Text("질문 \(currentStep) / 5")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(.secondary)
                                     }
-                                    
-                                    Toggle("최근 3년 금융소득종합과세 대상", isOn: $vm.hasComprehensiveTax)
-                                        .tint(.imMint)
+                                    .padding(.horizontal)
                                 }
-                                .padding(18)
+                                .padding(.top, 10)
+                                
+                                // B. 똑디 캐릭터 가이드 메세지
+                                HStack(spacing: 12) {
+                                    Image("onboarding_diagnose")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 44, height: 44)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.imMint.opacity(0.4), lineWidth: 1.5))
+                                    
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text("똑디의 자격진단 인터뷰")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(Color.imMint)
+                                        Text(guideMessageForStep(currentStep))
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(2)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(14)
                                 .glassmorphicCard()
                                 .padding(.horizontal)
-
-                                Button {
-                                    vm.diagnose()
-                                } label: {
-                                    if vm.isLoading {
-                                        ProgressView()
-                                            .tint(.primary)
-                                    } else {
-                                        Text("자격 진단하기")
+                                
+                                // C. 대화형 질문 카드 렌더링
+                                ZStack {
+                                    if currentStep == 1 {
+                                        questionCard(
+                                            title: "한국 거주자이신가요? 🇰🇷",
+                                            subtitle: "국내에 주소를 두거나 183일 이상 거소(체류)하고 계신지 확인합니다."
+                                        ) {
+                                            VStack(spacing: 12) {
+                                                optionButton(title: "👍 네, 거주 중입니다.", isSelected: vm.isResident) {
+                                                    vm.isResident = true
+                                                    nextStep()
+                                                }
+                                                optionButton(title: "👎 아니요, 비거주자입니다.", isSelected: !vm.isResident) {
+                                                    vm.isResident = false
+                                                    nextStep()
+                                                }
+                                            }
+                                        }
+                                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                                    } else if currentStep == 2 {
+                                        questionCard(
+                                            title: "현재 만 나이를 알려주세요 🎂",
+                                            subtitle: "비과세 계좌 가입에 적합한 연령 요건을 판별합니다."
+                                        ) {
+                                            VStack(spacing: 20) {
+                                                Text("\(vm.age) 세")
+                                                    .font(.system(size: 40, weight: .black))
+                                                    .foregroundStyle(Color.imMint)
+                                                
+                                                Stepper("", value: $vm.age, in: 15...100)
+                                                    .labelsHidden()
+                                                    .scaleEffect(1.2)
+                                                
+                                                Button {
+                                                    nextStep()
+                                                } label: {
+                                                    Text("나이 입력 완료")
+                                                        .font(.subheadline.bold())
+                                                        .foregroundStyle(.white)
+                                                        .padding(.vertical, 12)
+                                                        .frame(maxWidth: .infinity)
+                                                        .background(Color.imMint)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                                }
+                                                .padding(.top, 10)
+                                            }
+                                        }
+                                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                                    } else if currentStep == 3 {
+                                        questionCard(
+                                            title: "작년에 소득이 있으셨나요? 💰",
+                                            subtitle: "세액공제 한도 및 자격 요건의 기준이 됩니다."
+                                        ) {
+                                            VStack(spacing: 12) {
+                                                optionButton(title: "🙋‍♂️ 네, 소득이 있었습니다.", isSelected: vm.hadIncomeLastYear) {
+                                                    vm.hadIncomeLastYear = true
+                                                    nextStep()
+                                                }
+                                                optionButton(title: "🙅‍♂️ 아니요, 없었습니다.", isSelected: !vm.hadIncomeLastYear) {
+                                                    vm.hadIncomeLastYear = false
+                                                    // 소득이 없으면 소득유형을 .none 으로 고정하고 Q5로 바로 건너뜀
+                                                    vm.incomeType = .none
+                                                    currentStep = 5
+                                                }
+                                            }
+                                        }
+                                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                                    } else if currentStep == 4 {
+                                        questionCard(
+                                            title: "소득 유형을 선택해주세요 💼",
+                                            subtitle: "직장 유형에 따른 정확한 절세 요건이 계산됩니다."
+                                        ) {
+                                            VStack(spacing: 10) {
+                                                ForEach(IncomeType.allCases, id: \.self) { type in
+                                                    // '소득 없음'은 Q3에서 걸렀으므로 제외
+                                                    if type != .none {
+                                                        optionButton(title: type.rawValue, isSelected: vm.incomeType == type) {
+                                                            vm.incomeType = type
+                                                            nextStep()
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                                    } else if currentStep == 5 {
+                                        questionCard(
+                                            title: "금융소득종합과세 대상인가요? 📊",
+                                            subtitle: "최근 3년 중 한 번이라도 연간 금융 소득(이자/배당)이 2천만 원을 초과했나요?"
+                                        ) {
+                                            VStack(spacing: 12) {
+                                                optionButton(title: "⚠️ 네, 해당됩니다.", isSelected: vm.hasComprehensiveTax) {
+                                                    vm.hasComprehensiveTax = true
+                                                    triggerDiagnosis()
+                                                }
+                                                optionButton(title: "✅ 아니요, 해당되지 않습니다.", isSelected: !vm.hasComprehensiveTax) {
+                                                    vm.hasComprehensiveTax = false
+                                                    triggerDiagnosis()
+                                                }
+                                            }
+                                        }
+                                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                                     }
                                 }
-                                .buttonStyle(GlassmorphicButtonStyle())
-                                .disabled(vm.isLoading)
                                 .padding(.horizontal)
-
+                                
                                 if let error = vm.errorMessage {
                                     Text(error)
                                         .font(.caption)
@@ -311,6 +432,88 @@ struct EligibilityView: View {
         let rawType = vm.incomeType.rawValue.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let query = "is_resident=\(vm.isResident)&age=\(vm.age)&had_income_last_year=\(vm.hadIncomeLastYear)&income_type=\(rawType)&has_comprehensive_tax=\(vm.hasComprehensiveTax)&search_queries=ISA%EB%B9%84%EA%B3%BC%EC%84%B8,IRP%EA%B0%80%EC%9E%85&clicked_policies=ISA%EB%B9%84%EA%B3%BC%EC%84%B8%ED%95%9C%EB%8F%84%EC%95%88%EB%82%B4&chat_count=3"
         return "\(baseUrlString)/banker/report?\(query)"
+    }
+    
+    // 똑디 가이드 메시지 분기
+    private func guideMessageForStep(_ step: Int) -> String {
+        switch step {
+        case 1:
+            return "안녕하세요! 절세를 위해 고객님이 국내 거주 상태인지 똑 부러지게 확인해 드릴게요."
+        case 2:
+            return "만 나이에 따라서 가입할 수 있는 상품과 혜택 한도가 달라진답니다."
+        case 3:
+            return "지난해 소득이 있으셨다면 연금저축 한도 혜택을 더 크게 받으실 수 있어요."
+        case 4:
+            return "직장인과 개인 사업자 등 소득 방식에 맞춰 서류 제출 기준을 맞출게요."
+        case 5:
+            return "종합과세 여부는 비과세 혜택을 받기 위한 최종적인 체크 리스트입니다!"
+        default:
+            return "자격 요건 분석을 마칠게요."
+        }
+    }
+    
+    // 다음 질문 카드 이동
+    private func nextStep() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            currentStep += 1
+        }
+    }
+    
+    // 자격진단 개시
+    private func triggerDiagnosis() {
+        withAnimation {
+            vm.diagnose()
+        }
+    }
+    
+    // 질문지 전용 프레임 카드
+    private func questionCard<Content: View>(title: String, subtitle: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.title3.bold())
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Divider()
+            
+            content()
+        }
+        .padding(18)
+        .glassmorphicCard()
+    }
+    
+    // 비주얼 예/아니오 선택 옵션 버튼
+    private func optionButton(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(isSelected ? Color.imMint : .primary)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.imMint)
+                } else {
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.4), lineWidth: 1.5)
+                        .frame(width: 20, height: 20)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(isSelected ? Color.imMint.opacity(0.08) : Color.white.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.imMint : Color.white.opacity(0.4), lineWidth: 1.5)
+            )
+        }
     }
 }
 
