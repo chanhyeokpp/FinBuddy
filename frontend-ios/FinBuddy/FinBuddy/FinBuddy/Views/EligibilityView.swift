@@ -50,6 +50,9 @@ struct EligibilityView: View {
     
     // 단계별 대화형 질문용 상태 변수
     @State private var currentStep = 1
+    
+    // OCR 신분증 스캔 모달 플래그
+    @State private var isShowingOCRScanner = false
 
     var body: some View {
         NavigationStack {
@@ -296,6 +299,24 @@ struct EligibilityView: View {
                                             subtitle: "국내에 주소를 두거나 183일 이상 거소(체류)하고 계신지 확인합니다."
                                         ) {
                                             VStack(spacing: 12) {
+                                                // OCR 신분증 스캔 퀵 버튼 배치
+                                                Button {
+                                                    isShowingOCRScanner = true
+                                                } label: {
+                                                    HStack(spacing: 8) {
+                                                        Image(systemName: "camera.viewfinder")
+                                                            .font(.system(size: 13, weight: .bold))
+                                                        Text("신분증(외국인등록증) 스캔으로 자동 입력")
+                                                            .font(.system(size: 11, weight: .bold))
+                                                    }
+                                                    .foregroundStyle(Color.white)
+                                                    .padding(.horizontal, 16)
+                                                    .padding(.vertical, 10)
+                                                    .background(Color.imMintLimeGradient)
+                                                    .clipShape(Capsule())
+                                                    .shadow(color: Color.imMint.opacity(0.3), radius: 4, y: 2)
+                                                }
+                                                .padding(.bottom, 6)
                                                 optionButton(title: "👍 네, 거주 중입니다.", isSelected: vm.isResident) {
                                                     vm.isResident = true
                                                     nextStep()
@@ -422,6 +443,9 @@ struct EligibilityView: View {
                     QRCodeShareModal(urlString: shareURL, isPresented: $isShowingQRModal)
                         .transition(.opacity)
                 }
+            }
+            .fullScreenCover(isPresented: $isShowingOCRScanner) {
+                OCRScannerView(vm: vm, currentStep: $currentStep)
             }
         }
     }
