@@ -19,6 +19,9 @@ struct HomeView: View {
     
     // 마스코트 애니메이션용 오프셋
     @State private var heroBounceOffset: CGFloat = -6
+    
+    // 저축 의도 클릭 시 말풍선 안내 오버레이 문구
+    @State private var transitionText: String? = nil
 
     // 각 피드 카드 정보에 다국어 해설 번역 연계 키워드 추가
     private let items: [PolicyItem] = [
@@ -72,7 +75,10 @@ struct HomeView: View {
                                 .padding(.horizontal)
                         }
                         
-                        // C. 금융 정책 소식 타이틀 헤더
+                        // C. 의도 분기 선택 섹션
+                        intentBranchingSection
+                        
+                        // D. 금융 정책 소식 타이틀 헤더
                         HStack {
                             Text("오늘의 금융 정책 소식 📰")
                                 .font(.system(size: 15, weight: .bold))
@@ -90,6 +96,37 @@ struct HomeView: View {
                         }
                     }
                     .padding(.vertical)
+                }
+                
+                // 저축 의도 진입 시 안내 말풍선 오버레이
+                if let text = transitionText {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                            .transition(.opacity)
+                        
+                        VStack(spacing: 12) {
+                            Image(systemName: "quote.bubble.fill")
+                                .font(.largeTitle)
+                                .foregroundStyle(Color.imMint)
+                            Text(text)
+                                .font(.body.bold())
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(.primary)
+                                .padding()
+                        }
+                        .padding(24)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.white.opacity(0.6), lineWidth: 1.5)
+                        )
+                        .shadow(radius: 10)
+                        .padding(.horizontal, 40)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                    .zIndex(10)
                 }
             }
             .navigationTitle("핀버디")
@@ -265,6 +302,116 @@ struct HomeView: View {
     private var portfolioCardBanner: some View {
         GlassCard3D {
             isShowingPortfolio = true
+        }
+    }
+    
+    // 의도 분기 선택 섹션
+    private var intentBranchingSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("무엇을 하고 싶으세요? 🤔")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.primary)
+                .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                // 1. 저축
+                intentRowButton(
+                    title: "저축하고 싶어요",
+                    subtitle: "나에게 딱 맞는 비과세/절세 계좌 진단하기",
+                    emoji: "🌱",
+                    gradientColors: [Color.imMint, Color.imMint.opacity(0.8)]
+                ) {
+                    triggerSaveTransition()
+                }
+                
+                // 2. 투자
+                intentRowButton(
+                    title: "투자하고 싶어요",
+                    subtitle: "소액부터 불려나가는 투자 기초 Q&A",
+                    emoji: "📈",
+                    gradientColors: [Color.imLime, Color.imLime.opacity(0.8)]
+                ) {
+                    appState.chatPrefillQuestion = "투자 시작하려면 뭐부터 알아야 해?"
+                    appState.shouldAutoSend = true
+                    appState.selectedTab = 1
+                }
+                
+                // 3. 금융상품
+                intentRowButton(
+                    title: "금융상품 알아보고 싶어요",
+                    subtitle: "외국인 우대 금리 및 다양한 예적금 정보 찾기",
+                    emoji: "🔍",
+                    gradientColors: [Color.blue.opacity(0.7), Color.blue.opacity(0.5)]
+                ) {
+                    appState.chatPrefillQuestion = "어떤 금융상품들이 있어?"
+                    appState.shouldAutoSend = true
+                    appState.selectedTab = 1
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    private func intentRowButton(
+        title: String,
+        subtitle: String,
+        emoji: String,
+        gradientColors: [Color],
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                // 동그라미 아이콘 컨테이너
+                Text(emoji)
+                    .font(.title3)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        LinearGradient(
+                            colors: gradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .opacity(0.15)
+                    )
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(gradientColors.first ?? .clear, lineWidth: 1)
+                    )
+                
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 14.5, weight: .bold))
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.secondary.opacity(0.8))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(Color.white.opacity(0.08))
+            .glassmorphicCard()
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func triggerSaveTransition() {
+        withAnimation {
+            transitionText = "좋아요! 먼저 어떤 절세계좌가 맞는지 확인해볼까요? 🌱"
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation {
+                transitionText = nil
+                appState.selectedTab = 2 // 자격진단 탭으로 이동
+            }
         }
     }
 }
