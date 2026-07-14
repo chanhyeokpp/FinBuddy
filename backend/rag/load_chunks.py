@@ -24,6 +24,11 @@ CHUNK_FILES = [
     "chunks_pension_소득세법59조3.json",
     "chunks_연금저축계좌_상품설명서.json",
     "chunks_외국인종합소득세신고안내.json",
+    "chunks_irp_상품설명서.json",
+    "chunks_외국인_통장개설_가이드.json",
+    "chunks_외국인_해외송금_가이드.json",
+    "chunks_외국인_비자_취업_가이드.json",
+    "chunks_imbank_외국인_혜택.json",
 ]
 
 CONTEXTUAL_CHUNK_FILES = [
@@ -31,6 +36,11 @@ CONTEXTUAL_CHUNK_FILES = [
     "contextual_chunks_pension_소득세법59조3.json",
     "contextual_chunks_연금저축계좌_상품설명서.json",
     "contextual_chunks_외국인종합소득세신고안내.json",
+    "contextual_chunks_irp_상품설명서.json",
+    "contextual_chunks_외국인_통장개설_가이드.json",
+    "contextual_chunks_외국인_해외송금_가이드.json",
+    "contextual_chunks_외국인_비자_취업_가이드.json",
+    "contextual_chunks_imbank_외국인_혜택.json",
 ]
 
 # 파일명 -> doc_type 매핑 (eval_dataset.py의 source 태그와 맞춤)
@@ -39,10 +49,20 @@ DOC_TYPE_MAP = {
     "chunks_pension_소득세법59조3.json": "pension",
     "chunks_연금저축계좌_상품설명서.json": "product_guide",
     "chunks_외국인종합소득세신고안내.json": "tax_guide",
+    "chunks_irp_상품설명서.json": "irp",
+    "chunks_외국인_통장개설_가이드.json": "tax_guide",
+    "chunks_외국인_해외송금_가이드.json": "tax_guide",
+    "chunks_외국인_비자_취업_가이드.json": "visa_guide",
+    "chunks_imbank_외국인_혜택.json": "product_guide",
     "contextual_chunks_isa_조세특례제한법91조18.json": "isa",
     "contextual_chunks_pension_소득세법59조3.json": "pension",
     "contextual_chunks_연금저축계좌_상품설명서.json": "product_guide",
     "contextual_chunks_외국인종합소득세신고안내.json": "tax_guide",
+    "contextual_chunks_irp_상품설명서.json": "irp",
+    "contextual_chunks_외국인_통장개설_가이드.json": "tax_guide",
+    "contextual_chunks_외국인_해외송금_가이드.json": "tax_guide",
+    "contextual_chunks_외국인_비자_취업_가이드.json": "visa_guide",
+    "contextual_chunks_imbank_외국인_혜택.json": "product_guide",
 }
 
 

@@ -15,6 +15,11 @@ CHUNK_FILES = [
     "chunks_pension_소득세법59조3.json",
     "chunks_연금저축계좌_상품설명서.json",
     "chunks_외국인종합소득세신고안내.json",
+    "chunks_irp_상품설명서.json",
+    "chunks_외국인_통장개설_가이드.json",
+    "chunks_외국인_해외송금_가이드.json",
+    "chunks_외국인_비자_취업_가이드.json",
+    "chunks_imbank_외국인_혜택.json",
 ]
 
 PROMPT_TEMPLATE = """You are an AI assistant specialized in analyzing financial documents.
@@ -58,6 +63,10 @@ def main():
         
         if not input_path.exists():
             print(f"File not found: {input_path}")
+            continue
+            
+        if output_path.exists():
+            print(f"Skipping {fname} (already exists)")
             continue
             
         print(f"Processing {fname}...")
