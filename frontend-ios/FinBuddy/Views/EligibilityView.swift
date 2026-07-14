@@ -292,6 +292,9 @@ struct EligibilityView: View {
     
     // 소득 유형 펼침 상태 변수
     @State private var showAllIncomeTypes = false
+    
+    // 마이페이지 프로필과 동기화하기 위한 입국일 Interval
+    @AppStorage("fb_entry_date_interval") private var entryDateInterval: Double = Date().timeIntervalSince1970
 
     var body: some View {
         NavigationStack {
@@ -587,7 +590,13 @@ struct EligibilityView: View {
                                                 
                                                 DatePicker(
                                                     "",
-                                                    selection: $vm.entryDate,
+                                                    selection: Binding(
+                                                        get: { Date(timeIntervalSince1970: entryDateInterval) },
+                                                        set: { newDate in
+                                                            entryDateInterval = newDate.timeIntervalSince1970
+                                                            vm.entryDate = newDate
+                                                        }
+                                                    ),
                                                     in: ...Date(),
                                                     displayedComponents: .date
                                                 )
@@ -779,6 +788,9 @@ struct EligibilityView: View {
             }
             .fullScreenCover(isPresented: $isShowingOCRScanner) {
                 OCRScannerView(vm: vm, currentStep: $currentStep)
+            }
+            .onAppear {
+                vm.entryDate = Date(timeIntervalSince1970: entryDateInterval)
             }
         }
     }

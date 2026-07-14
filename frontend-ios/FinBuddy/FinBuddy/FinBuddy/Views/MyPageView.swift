@@ -7,6 +7,10 @@ struct MyPageView: View {
     @AppStorage("fb_nickname") private var nickname: String = ""
     @AppStorage("fb_marketing_consent") private var marketingConsent: Bool = false
     @AppStorage("fb_data_consent") private var dataConsent: Bool = true
+    @AppStorage("fb_visa_type") private var visaType: String = "E-9 (비전문취업)"
+    @AppStorage("fb_pref_language") private var prefLanguage: String = "ko"
+    @AppStorage("fb_monthly_savings") private var monthlySavings: Double = 1000000.0
+    @AppStorage("fb_entry_date_interval") private var entryDateInterval: Double = Date().timeIntervalSince1970
 
     var body: some View {
         NavigationStack {
@@ -20,27 +24,114 @@ struct MyPageView: View {
                     diagnosisSummaryCard
                         .padding(.horizontal)
                     
-                    // 2. 프로필 입력 카드 (Toss 스타일 글래스 카드화)
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("프로필 설정")
-                            .font(.headline.bold())
-                            .foregroundStyle(.primary)
+                    // 2. 프로필 설정 카드 (Toss 스타일 프리미엄 글래스 카드)
+                    VStack(alignment: .leading, spacing: 18) {
+                        HStack {
+                            Image(systemName: "person.crop.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(Color.imMint)
+                            Text("나의 프로필 설정")
+                                .font(.headline.bold())
+                                .foregroundStyle(.primary)
+                        }
                         
                         Divider()
                         
-                        TextField("닉네임 입력 (예: 홍길동)", text: $nickname)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .background(Color.black.opacity(0.03))
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        // A. 닉네임 입력
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("닉네임")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            TextField("닉네임 입력 (예: 홍길동)", text: $nickname)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .background(Color.white.opacity(0.06))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                                )
+                        }
                         
-                        // 닉네임 용도 및 수집 범위 가이드 설명 문구 추가
-                        Text("💡 입력하신 닉네임은 챗봇 답변과 홈 화면의 맞춤 금융 피드 안내 시에만 사용됩니다. 외부 서버로 전송되거나 타인에게 노출되지 않으니 자유롭게 입력하셔도 안전합니다.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineSpacing(4)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
+                        // B. 비자 유형 선택
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("비자 유형 (Visa Type)")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            
+                            Picker("비자 유형", selection: $visaType) {
+                                Text("E-9 (비전문취업)").tag("E-9 (비전문취업)")
+                                Text("E-7 (특정활동)").tag("E-7 (특정활동)")
+                                Text("F-2 (거주)").tag("F-2 (거주)")
+                                Text("F-5 (영주)").tag("F-5 (영주)")
+                                Text("기타 비자").tag("기타 비자")
+                            }
+                            .pickerStyle(.menu)
+                            .tint(.imMint)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        
+                        // C. 최근 입국일 설정
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("최근 입국일 (Date of Entry)")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            
+                            HStack {
+                                DatePicker(
+                                    "",
+                                    selection: Binding(
+                                        get: { Date(timeIntervalSince1970: entryDateInterval) },
+                                        set: { entryDateInterval = $0.timeIntervalSince1970 }
+                                    ),
+                                    in: ...Date(),
+                                    displayedComponents: .date
+                                )
+                                .datePickerStyle(.compact)
+                                .labelsHidden()
+                                
+                                Spacer()
+                                
+                                let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date(timeIntervalSince1970: entryDateInterval)), to: Calendar.current.startOfDay(for: Date())).day ?? 0
+                                Text("체류 \(days)일째 (\(days >= 183 ? "거주자" : "비거주자"))")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(days >= 183 ? Color.imMint : .orange)
+                            }
+                        }
+                        
+                        // D. 선호 언어 설정
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("선호 언어 (Preferred Language)")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            
+                            Picker("선호 언어", selection: $prefLanguage) {
+                                Text("한국어 🇰🇷").tag("ko")
+                                Text("English 🇺🇸").tag("en")
+                                Text("Tiếng Việt 🇻🇳").tag("vi")
+                                Text("中文 🇨🇳").tag("zh")
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                        
+                        // E. 월 목표 저축액
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("월 목표 저축액")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text("₩\(Int(monthlySavings).formatted())")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(Color.imMint)
+                            }
+                            
+                            Slider(value: $monthlySavings, in: 100000...5000000, step: 100000)
+                                .tint(Color.imMint)
+                        }
                     }
                     .padding(18)
                     .glassmorphicCard()
