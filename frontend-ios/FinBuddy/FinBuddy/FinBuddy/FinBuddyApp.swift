@@ -13,6 +13,9 @@ class AppState: ObservableObject {
     @Published var isDiagnosed: Bool = false
     @Published var diagnosedResult: EligibilityResponse? = nil
     
+    // 온보딩 완료 여부
+    @Published var hasSeenOnboarding: Bool = false
+    
     init() {
         // UserDefaults에서 기존 완료 데이터 복구
         self.isDiagnosed = UserDefaults.standard.bool(forKey: "is_eligibility_diagnosed")
@@ -20,6 +23,7 @@ class AppState: ObservableObject {
            let decoded = try? JSONDecoder().decode(EligibilityResponse.self, from: data) {
             self.diagnosedResult = decoded
         }
+        self.hasSeenOnboarding = UserDefaults.standard.bool(forKey: "has_seen_onboarding")
     }
     
     func saveDiagnosisResult(response: EligibilityResponse) {
@@ -59,8 +63,13 @@ struct FinBuddyApp: App {
     
     var body: some Scene {
         WindowGroup {
-            RootTabView()
-                .environmentObject(appState)
+            if appState.hasSeenOnboarding {
+                RootTabView()
+                    .environmentObject(appState)
+            } else {
+                OnboardingView()
+                    .environmentObject(appState)
+            }
         }
     }
 }
