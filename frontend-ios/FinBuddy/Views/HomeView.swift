@@ -16,6 +16,9 @@ struct HomeView: View {
     @State private var isShowingPortfolio = false
     @State private var isShowingJargonTooltip = false
     @State private var selectedJargon = ""
+    
+    // 마스코트 애니메이션용 오프셋
+    @State private var heroBounceOffset: CGFloat = -6
 
     // 각 피드 카드 정보에 다국어 해설 번역 연계 키워드 추가
     private let items: [PolicyItem] = [
@@ -53,28 +56,31 @@ struct HomeView: View {
                 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // 웰컴 인사말
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("안녕하세요 👋")
-                                .font(.title2.bold())
-                                .foregroundStyle(.primary)
-                            Text("오늘의 금융 정책 소식을 확인해보세요")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                        
-                        // 2. 개인화 세금 혜택 전광판 배너 (Tax Dashboard)
-                        taxSavingGaugeCard
+                        // A. 프리미엄 캐릭터 메인 히어로 배너
+                        mascotHeroBanner
                             .padding(.horizontal)
+                            .padding(.top, 10)
                         
-                        // 3. 절세 투자 포트폴리오 안내 시트 (진단 완료시에만 활성화)
+                        // B. 진단 완료 시 나타나는 계좌/절세 종합 대시보드 그리드
                         if appState.isDiagnosed {
+                            taxDashboardGrid
+                                .padding(.horizontal)
+                                .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
+                            
+                            // 3D 드래그 입체 카드 (포트폴리오 리포트용)
                             portfolioCardBanner
                                 .padding(.horizontal)
                         }
+                        
+                        // C. 금융 정책 소식 타이틀 헤더
+                        HStack {
+                            Text("오늘의 금융 정책 소식 📰")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 6)
                         
                         // 4. 정책 카드 피드 리스트
                         VStack(spacing: 16) {
@@ -87,6 +93,30 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("핀버디")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack(spacing: 10) {
+                        Button {
+                            // 단순 데모 피드백
+                        } label: {
+                            Image(systemName: "bell.badge.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.imMint)
+                                .padding(8)
+                                .background(Color.white.opacity(0.8))
+                                .clipShape(Circle())
+                        }
+                        
+                        Image("onboarding_welcome")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 32, height: 32)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.imMint.opacity(0.5), lineWidth: 1.5))
+                            .shadow(color: .black.opacity(0.04), radius: 4)
+                    }
+                }
+            }
             .sheet(isPresented: $isShowingPortfolio) {
                 PortfolioReportView()
             }
@@ -100,83 +130,135 @@ struct HomeView: View {
         }
     }
 
-    // 자격진단 결과 연동형 개인화 세금 혜택 대시보드 카드
-    private var taxSavingGaugeCard: some View {
+    // 홈화면 메인 히어로 배너 (Mascot Hero Banner)
+    private var mascotHeroBanner: some View {
         Button {
-            appState.selectedTab = 2 // 자격진단 탭으로 연결
+            if appState.isDiagnosed {
+                isShowingPortfolio = true
+            } else {
+                appState.selectedTab = 2 // 자격진단 탭으로 이동
+            }
         } label: {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    Image(systemName: appState.isDiagnosed ? "sparkles" : "shield.checkerboard")
-                        .font(.headline.bold())
-                        .foregroundStyle(.white)
-                        .padding(10)
-                        .background(Color.imMintLimeGradient)
-                        .clipShape(Circle())
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(appState.isDiagnosed ? "나의 세금 혜택 현황" : "나에게 맞는 금융 상품은?")
-                            .font(.subheadline.bold())
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
+                    if appState.isDiagnosed {
+                        Text("절세 자격 분석 완료! 🎉")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Color.imMint)
+                        
+                        Text("올해 예상 환급액\n₩1,180,000 ✨")
+                            .font(.title2.bold())
                             .foregroundStyle(.primary)
-                        Text(appState.isDiagnosed ? appState.diagnosisSummary : "3분 만에 내 절세 자격 확인하기 ➔")
+                            .multilineTextAlignment(.leading)
+                            .lineSpacing(4)
+                        
+                        Text("우디와 단디가 알려준 맞춤 상품 가이드를 창구 행원에게 바로 제안해보세요.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        Text("똑디의 맞춤형 제안 💡")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Color.imMint)
+                        
+                        Text("나를 위한 숨은\n절세 혜택은 얼마? 💸")
+                            .font(.title2.bold())
+                            .foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+                            .lineSpacing(4)
+                        
+                        Text("체류 비자(Visa)와 근로 소득을 기반으로 3분 만에 최적의 혜택을 찾아드려요.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
                 
-                if appState.isDiagnosed {
-                    Divider()
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("올해 아낄 수 있는 세금")
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text("최대 ₩1,180,000")
-                                .font(.caption.bold())
-                                .foregroundStyle(Color.imMint)
+                Spacer()
+                
+                // 마스코트 공중 부양 애니메이션 적용
+                Image(appState.isDiagnosed ? "onboarding_welcome" : "onboarding_diagnose")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 100, height: 100)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
+                    .offset(y: heroBounceOffset)
+                    .onAppear {
+                        withAnimation(
+                            .easeInOut(duration: 2.2)
+                            .repeatForever(autoreverses: true)
+                        ) {
+                            heroBounceOffset = 6
                         }
-                        
-                        // 게이지 게이지 차트 렌더링
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(Color.black.opacity(0.04))
-                                    .frame(height: 8)
-                                
-                                Capsule()
-                                    .fill(Color.imMintLimeGradient)
-                                    .frame(width: geo.size.width * 0.8, height: 8)
-                            }
-                        }
-                        .frame(height: 8)
-                        
-                        Text("🎉 연 118만원 절세 혜택 가능! 하단 포트폴리오를 확인해보세요.")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
                     }
-                }
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
             .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .stroke(
                         appState.isDiagnosed ? Color.imMint.opacity(0.3) : Color.white.opacity(0.6),
                         lineWidth: 1.5
                     )
             )
-            .shadow(color: .black.opacity(0.03), radius: 6, x: 0, y: 3)
+            .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 4)
         }
+        .buttonStyle(.plain)
+    }
+    
+    // 2x2 절세 혜택 입체 대시보드 그리드
+    private var taxDashboardGrid: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("나의 금융 자산 대시보드 📊")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.primary)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                dashboardCell(title: "올해 예상 절세액", value: "₩1,180,000", subtitle: "최대 혜택 적용", icon: "sparkles", color: Color.imMint)
+                dashboardCell(title: "가입 가능 계좌", value: "3 개 상품", subtitle: "ISA / IRP / 연금", icon: "archivebox.fill", color: .blue)
+                dashboardCell(title: "소득 판정 등급", value: "서민형 대상", subtitle: "5천만원 이하", icon: "person.text.rectangle.fill", color: .purple)
+                dashboardCell(title: "행원 제출용 보고서", value: "QR 코드 발급", subtitle: "즉시 스캔 가능", icon: "qrcode", color: .orange)
+            }
+        }
+    }
+    
+    private func dashboardCell(title: String, value: String, subtitle: String, icon: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(6)
+                    .background(color.opacity(0.8))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassmorphicCard()
     }
 
     // 포트폴리오 리포트 시트 실행 배너 (3D 드래그 입체 카드 버전)
