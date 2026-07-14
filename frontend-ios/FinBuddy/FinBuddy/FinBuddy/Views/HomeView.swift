@@ -59,12 +59,15 @@ struct HomeView: View {
                 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // A. 프리미엄 캐릭터 메인 히어로 배너
-                        mascotHeroBanner
-                            .padding(.horizontal)
+                        // A. 의도 분기 선택 섹션 (최상단 배치)
+                        intentBranchingSection
                             .padding(.top, 10)
                         
-                        // B. 진단 완료 시 나타나는 계좌/절세 종합 대시보드 그리드
+                        // B. 프리미엄 캐릭터 메인 히어로 배너
+                        mascotHeroBanner
+                            .padding(.horizontal)
+                        
+                        // C. 진단 완료 시 나타나는 계좌/절세 종합 대시보드 그리드
                         if appState.isDiagnosed {
                             taxDashboardGrid
                                 .padding(.horizontal)
@@ -74,9 +77,6 @@ struct HomeView: View {
                             portfolioCardBanner
                                 .padding(.horizontal)
                         }
-                        
-                        // C. 의도 분기 선택 섹션
-                        intentBranchingSection
                         
                         // D. 금융 정책 소식 타이틀 헤더
                         HStack {
