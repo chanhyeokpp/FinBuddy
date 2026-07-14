@@ -6,6 +6,7 @@ import AVFoundation
 @MainActor
 final class EligibilityViewModel: ObservableObject {
     @Published var isResident = true
+    @Published var entryDate = Date()
     @Published var age = 27
     @Published var hadIncomeLastYear = true
     @Published var incomeType: IncomeType = .employed
@@ -15,13 +16,22 @@ final class EligibilityViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
+    var calculatedIsResident: Bool {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfEntryDate = calendar.startOfDay(for: entryDate)
+        let components = calendar.dateComponents([.day], from: startOfEntryDate, to: startOfToday)
+        let days = components.day ?? 0
+        return days >= 183
+    }
+
     func diagnose() {
         isLoading = true
         errorMessage = nil
         result = nil
 
         let req = EligibilityRequest(
-            is_resident: isResident,
+            is_resident: calculatedIsResident,
             age: age,
             had_income_last_year: hadIncomeLastYear,
             income_type: incomeType.rawValue,
@@ -68,9 +78,9 @@ struct EligibilityView: View {
             switch step {
             case 1:
                 return (
-                    title: "Are you a resident of Korea? 🇰🇷",
-                    subtitle: "Confirm if you have an address or have resided in Korea for 183 days or more.",
-                    guide: "Hello! I will clearly verify if you reside in Korea to qualify for tax savings."
+                    title: "When is your recent entry date to Korea? 🛫",
+                    subtitle: "We automatically determine your residency based on calculated days in Korea.",
+                    guide: "Hello! Tell me your entry date, and I'll calculate if you've stayed for 183 days or more."
                 )
             case 2:
                 return (
@@ -104,9 +114,9 @@ struct EligibilityView: View {
             switch step {
             case 1:
                 return (
-                    title: "您是韩国居民吗？ 🇰🇷",
-                    subtitle: "确认您在韩国是否有住所或已居住183天以上。",
-                    guide: "您好！为了帮您节省税款，我会帮您确认您是否属于韩国居民身份。"
+                    title: "您最近的入境韩国日期是哪天？ 🛫",
+                    subtitle: "系统将根据入境日期自动计算居住天数并判定居民身份。",
+                    guide: "您好！请选择您的入境日期，我将自动计算您是否已在韩居住满183天。"
                 )
             case 2:
                 return (
@@ -140,9 +150,9 @@ struct EligibilityView: View {
             switch step {
             case 1:
                 return (
-                    title: "Bạn có phải cư dân Hàn Quốc không? 🇰🇷",
-                    subtitle: "Xác nhận xem bạn có địa chỉ hoặc đã cư trú tại HQ từ 183 ngày trở lên không.",
-                    guide: "Xin chào! Tôi sẽ kiểm tra chính xác tình trạng cư trú tại Hàn Quốc để giúp bạn được giảm thuế."
+                    title: "Ngày nhập cảnh HQ gần đây nhất của bạn? 🛫",
+                    subtitle: "Chúng tôi sẽ tự động xác định tình trạng cư trú dựa trên số ngày lưu trú.",
+                    guide: "Xin chào! Hãy cho biết ngày nhập cảnh, tôi sẽ tính toán xem bạn đã ở đây từ 183 ngày trở lên chưa."
                 )
             case 2:
                 return (
@@ -176,9 +186,9 @@ struct EligibilityView: View {
             switch step {
             case 1:
                 return (
-                    title: "한국 거주자이신가요? 🇰🇷",
-                    subtitle: "국내에 주소를 두거나 183일 이상 거소(체류)하고 계신지 확인합니다.",
-                    guide: "안녕하세요! 절세를 위해 고객님이 국내 거주 상태인지 똑 부러지게 확인해 드릴게요."
+                    title: "최근 한국 입국일이 언제인가요? 🛫",
+                    subtitle: "입국일 기준으로 체류일수를 계산하여 거주자 여부를 자동 판정합니다.",
+                    guide: "안녕하세요! 입국일을 알려주시면 183일 이상 국내 거소 여부를 자동으로 계산해 드릴게요."
                 )
             case 2:
                 return (
@@ -228,11 +238,7 @@ struct EligibilityView: View {
     private func getOptionText(step: Int, optionIndex: Int, lang: String) -> String {
         switch step {
         case 1:
-            if optionIndex == 0 {
-                return lang == "ko" ? "👍 네, 거주 중입니다." : (lang == "en" ? "👍 Yes, I reside here." : (lang == "zh" ? "👍 是的，我在此居住。" : "👍 Vâng, tôi cư trú ở đây."))
-            } else {
-                return lang == "ko" ? "👎 아니요, 비거주자입니다." : (lang == "en" ? "👎 No, I do not reside here." : (lang == "zh" ? "👎 不，我不在此居住。" : "👎 Không, tôi không cư trú ở đây."))
-            }
+            return lang == "ko" ? "날짜 입력 완료 ➔" : (lang == "en" ? "Done Selecting Date ➔" : (lang == "zh" ? "确认入境日期 ➔" : "Hoàn thành chọn ngày ➔"))
         case 2:
             return lang == "ko" ? "나이 입력 완료" : (lang == "en" ? "Done Entering Age" : (lang == "zh" ? "完成输入年龄" : "Hoàn thành nhập tuổi"))
         case 3:
@@ -283,6 +289,9 @@ struct EligibilityView: View {
     
     // OCR 신분증 스캔 모달 플래그
     @State private var isShowingOCRScanner = false
+    
+    // 소득 유형 펼침 상태 변수
+    @State private var showAllIncomeTypes = false
 
     var body: some View {
         NavigationStack {
@@ -576,19 +585,46 @@ struct EligibilityView: View {
                                                 }
                                                 .padding(.bottom, 6)
                                                 
-                                                optionButton(
-                                                    title: getOptionText(step: 1, optionIndex: 0, lang: selectedLanguage),
-                                                    isSelected: vm.isResident
-                                                ) {
-                                                    vm.isResident = true
-                                                    nextStep()
+                                                DatePicker(
+                                                    "",
+                                                    selection: $vm.entryDate,
+                                                    in: ...Date(),
+                                                    displayedComponents: .date
+                                                )
+                                                .datePickerStyle(.wheel)
+                                                .labelsHidden()
+                                                .frame(maxHeight: 110)
+                                                
+                                                let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: vm.entryDate), to: Calendar.current.startOfDay(for: Date())).day ?? 0
+                                                
+                                                VStack(spacing: 4) {
+                                                    Text(selectedLanguage == "ko" ? "체류 기간: \(days)일째" : (selectedLanguage == "en" ? "Stay duration: \(days) days" : (selectedLanguage == "zh" ? "已停留: \(days)天" : "Thời gian lưu trú: \(days) ngày")))
+                                                        .font(.caption.bold())
+                                                        .foregroundStyle(.secondary)
+                                                    
+                                                    if days >= 183 {
+                                                        Text(selectedLanguage == "ko" ? "거주자 판정 (183일 이상) ✅" : (selectedLanguage == "en" ? "Resident (183+ days) ✅" : (selectedLanguage == "zh" ? "判定为居民 (183天以上) ✅" : "Cư dân (Từ 183 ngày) ✅")))
+                                                            .font(.caption2.bold())
+                                                            .foregroundStyle(Color.imMint)
+                                                    } else {
+                                                        Text(selectedLanguage == "ko" ? "비거주자 판정 (183일 미만) ⚠️" : (selectedLanguage == "en" ? "Non-Resident (Under 183 days) ⚠️" : (selectedLanguage == "zh" ? "判定为非居民 (不足183天) ⚠️" : "Không cư trú (Dưới 183 ngày) ⚠️")))
+                                                            .font(.caption2.bold())
+                                                            .foregroundStyle(.orange)
+                                                    }
                                                 }
-                                                optionButton(
-                                                    title: getOptionText(step: 1, optionIndex: 1, lang: selectedLanguage),
-                                                    isSelected: !vm.isResident
-                                                ) {
-                                                    vm.isResident = false
+                                                .padding(.bottom, 8)
+                                                
+                                                Button {
+                                                    vm.isResident = vm.calculatedIsResident
                                                     nextStep()
+                                                } label: {
+                                                    Text(getOptionText(step: 1, optionIndex: 0, lang: selectedLanguage))
+                                                        .font(.subheadline.bold())
+                                                        .foregroundStyle(.white)
+                                                        .padding(.vertical, 12)
+                                                        .frame(maxWidth: .infinity)
+                                                        .background(Color.imMint)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 12))
                                                 }
                                             }
                                         }
@@ -652,14 +688,34 @@ struct EligibilityView: View {
                                             title: getTranslation(step: 4, lang: selectedLanguage).title,
                                             subtitle: getTranslation(step: 4, lang: selectedLanguage).subtitle
                                         ) {
-                                            VStack(spacing: 10) {
-                                                ForEach(IncomeType.allCases, id: \.self) { type in
-                                                    if type != .none {
-                                                        let titleText = getIncomeTypeText(type: type, lang: selectedLanguage)
-                                                        optionButton(title: titleText, isSelected: vm.incomeType == type) {
-                                                            vm.incomeType = type
-                                                            nextStep()
+                                            VStack(spacing: 12) {
+                                                optionButton(
+                                                    title: getIncomeTypeText(type: .employed, lang: selectedLanguage),
+                                                    isSelected: vm.incomeType == .employed
+                                                ) {
+                                                    vm.incomeType = .employed
+                                                    nextStep()
+                                                }
+                                                
+                                                if showAllIncomeTypes {
+                                                    optionButton(
+                                                        title: getIncomeTypeText(type: .selfEmployed, lang: selectedLanguage),
+                                                        isSelected: vm.incomeType == .selfEmployed
+                                                    ) {
+                                                        vm.incomeType = .selfEmployed
+                                                        nextStep()
+                                                    }
+                                                } else {
+                                                    Button {
+                                                        withAnimation {
+                                                            showAllIncomeTypes = true
                                                         }
+                                                    } label: {
+                                                        Text(selectedLanguage == "ko" ? "다른 소득유형이신가요?" : (selectedLanguage == "en" ? "Is your income type different?" : (selectedLanguage == "zh" ? "有其他收入类型吗？" : "Loại thu nhập khác?")))
+                                                            .font(.footnote)
+                                                            .underline()
+                                                            .foregroundStyle(.secondary)
+                                                            .padding(.top, 4)
                                                     }
                                                 }
                                             }
@@ -867,6 +923,15 @@ struct QRCodeShareModal: View {
                         .font(.subheadline)
                         .foregroundStyle(.red)
                 }
+                
+                Divider()
+                
+                Text("핀버디의 행동데이터 리포트는 신용평가(CSS)를 대체하지 않으며, 국내 신용이력이 부족한 고객에 대한 보조 참고자료입니다. 최종 대출 심사와 판단은 반드시 금융기관 여신심사역이 수행합니다.")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                    .lineSpacing(3.5)
                 
                 Text("iM FinBuddy 심사 연계 서비스")
                     .font(.caption2.bold())

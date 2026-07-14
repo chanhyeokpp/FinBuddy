@@ -38,8 +38,8 @@ struct APIClient {
         return try JSONDecoder().decode(Res.self, from: data)
     }
 
-    func chat(question: String) async throws -> ChatResponse {
-        try await post(path: "/chat", body: ChatRequest(question: question), as: ChatResponse.self)
+    func chat(question: String, language: String) async throws -> ChatResponse {
+        try await post(path: "/chat", body: ChatRequest(question: question, language: language), as: ChatResponse.self)
     }
 
     func diagnose(_ req: EligibilityRequest) async throws -> EligibilityResponse {

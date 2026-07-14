@@ -76,6 +76,16 @@ struct MyPageView: View {
                             .lineSpacing(3)
                             .fixedSize(horizontal: false, vertical: true)
                             .multilineTextAlignment(.leading)
+                        
+                        Divider()
+                            .padding(.vertical, 4)
+                        
+                        Text("핀버디의 행동데이터 리포트는 신용평가(CSS)를 대체하지 않으며, 국내 신용이력이 부족한 고객에 대한 보조 참고자료입니다. 최종 대출 심사와 판단은 반드시 금융기관 여신심사역이 수행합니다.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
                     }
                     .padding(16)
                     .glassmorphicCard()

@@ -83,6 +83,7 @@ def eligibility_diagnose(req: EligibilityRequest):
 
 class ChatRequest(BaseModel):
     question: str
+    language: str = "ko"
 
 
 class ChatResponse(BaseModel):

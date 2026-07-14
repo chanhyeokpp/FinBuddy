@@ -7,6 +7,7 @@ final class ChatViewModel: ObservableObject {
     @Published var input: String = ""
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var selectedLanguage: String = "ko" // 기본값 한국어
 
     init() {
         // 최초 시스템 메세지: 투자자문 금지 안내
@@ -24,7 +25,7 @@ final class ChatViewModel: ObservableObject {
 
         Task {
             do {
-                let res = try await APIClient.shared.chat(question: question)
+                let res = try await APIClient.shared.chat(question: question, language: selectedLanguage)
                 messages.append(ChatMessage(role: .bot, text: res.answer, sources: res.sources))
             } catch {
                 errorMessage = error.localizedDescription
@@ -46,6 +47,32 @@ struct ChatView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // 상단 다국어 선택 토글 (한국어 / English / Tiếng Việt / 中文)
+                HStack(spacing: 6) {
+                    ForEach([("ko", "한국어 🇰🇷"), ("en", "English 🇺🇸"), ("vi", "Tiếng Việt 🇻🇳"), ("zh", "中文 🇨🇳")], id: \.0) { code, label in
+                        Button {
+                            withAnimation {
+                                vm.selectedLanguage = code
+                            }
+                        } label: {
+                            Text(label)
+                                .font(.system(size: 11, weight: vm.selectedLanguage == code ? .bold : .medium))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(vm.selectedLanguage == code ? Color.imMint.opacity(0.18) : Color.white.opacity(0.08))
+                                .foregroundStyle(vm.selectedLanguage == code ? Color.imMint : Color.secondary)
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(vm.selectedLanguage == code ? Color.imMint : Color.white.opacity(0.2), lineWidth: 0.8)
+                                )
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
+                
                 ScrollViewReader { proxy in
                     ZStack {
                         AuroraBackgroundView()

@@ -4,6 +4,7 @@ import Foundation
 
 struct ChatRequest: Encodable {
     let question: String
+    let language: String
 }
 
 struct ChatResponse: Decodable {
