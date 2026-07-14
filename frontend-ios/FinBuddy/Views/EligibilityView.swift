@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import CoreImage
+import AVFoundation
 
 @MainActor
 final class EligibilityViewModel: ObservableObject {
@@ -41,6 +42,235 @@ final class EligibilityViewModel: ObservableObject {
 struct EligibilityView: View {
     @StateObject private var vm = EligibilityViewModel()
     @EnvironmentObject private var appState: AppState
+    
+    // 다국어 지원 상태 변수
+    @State private var selectedLanguage: String = "ko"
+    
+    // TTS 음성 합성기
+    private let speechSynthesizer = AVSpeechSynthesizer()
+    
+    // 음성 발화 Helper
+    private func speakText(_ text: String, lang: String) {
+        if speechSynthesizer.isSpeaking {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
+        let utterance = AVSpeechUtterance(string: text)
+        let localeMap = ["ko": "ko-KR", "en": "en-US", "zh": "zh-CN", "vi": "vi-VN"]
+        let locale = localeMap[lang] ?? "ko-KR"
+        utterance.voice = AVSpeechSynthesisVoice(language: locale)
+        utterance.rate = 0.5
+        speechSynthesizer.speak(utterance)
+    }
+    
+    private func getTranslation(step: Int, lang: String) -> (title: String, subtitle: String, guide: String) {
+        switch lang {
+        case "en":
+            switch step {
+            case 1:
+                return (
+                    title: "Are you a resident of Korea? 🇰🇷",
+                    subtitle: "Confirm if you have an address or have resided in Korea for 183 days or more.",
+                    guide: "Hello! I will clearly verify if you reside in Korea to qualify for tax savings."
+                )
+            case 2:
+                return (
+                    title: "Please select your international age 🎂",
+                    subtitle: "We determine the appropriate age requirements for tax-free accounts.",
+                    guide: "Depending on your international age, the products you can join and their benefit limits vary."
+                )
+            case 3:
+                return (
+                    title: "Did you have taxable income last year? 💰",
+                    subtitle: "We check if you had wage or business income in the previous taxable period.",
+                    guide: "If you had income last year, you can receive larger benefits for retirement savings."
+                )
+            case 4:
+                return (
+                    title: "What is your type of income? 💼",
+                    subtitle: "Select your primary source of domestic income.",
+                    guide: "We will align the document submission criteria to your income type (wage earner or business owner)."
+                )
+            case 5:
+                return (
+                    title: "Was your global income under 38M KRW? 📊",
+                    subtitle: "This determines if you qualify for the special taxpayer category.",
+                    guide: "Global taxation status is the final checklist for receiving tax-free benefits!"
+                )
+            default:
+                return (title: "", subtitle: "", guide: "")
+            }
+            
+        case "zh":
+            switch step {
+            case 1:
+                return (
+                    title: "您是韩国居民吗？ 🇰🇷",
+                    subtitle: "确认您在韩国是否有住所或已居住183天以上。",
+                    guide: "您好！为了帮您节省税款，我会帮您确认您是否属于韩国居民身份。"
+                )
+            case 2:
+                return (
+                    title: "请输入您当前的实际年龄 🎂",
+                    subtitle: "判定您是否符合免税账户的年龄要求。",
+                    guide: "根据您的实际年龄，您可以加入的金融产品和优惠限额也会有所不同。"
+                )
+            case 3:
+                return (
+                    title: "您在上一纳税期有收入吗？ 💰",
+                    subtitle: "确认您在上一纳税期是否有工资或营业收入。",
+                    guide: "如果您去年有收入，您的养老储蓄账户可以获得更大的税收优惠。"
+                )
+            case 4:
+                return (
+                    title: "您的收入类型是什么？ 💼",
+                    subtitle: "选择您在韩国国内的主要收入来源。",
+                    guide: "我们将根据您的收入类型（上班族或个体工商户）来对应调整您需要提交的材料标准。"
+                )
+            case 5:
+                return (
+                    title: "您上一年度的综合所得是否在3800万韩元以下？ 📊",
+                    subtitle: "确认您是否属于平民型免税额度对象。",
+                    guide: "综合所得税申报情况是享受免税优惠的最终确认清单！"
+                )
+            default:
+                return (title: "", subtitle: "", guide: "")
+            }
+            
+        case "vi":
+            switch step {
+            case 1:
+                return (
+                    title: "Bạn có phải cư dân Hàn Quốc không? 🇰🇷",
+                    subtitle: "Xác nhận xem bạn có địa chỉ hoặc đã cư trú tại HQ từ 183 ngày trở lên không.",
+                    guide: "Xin chào! Tôi sẽ kiểm tra chính xác tình trạng cư trú tại Hàn Quốc để giúp bạn được giảm thuế."
+                )
+            case 2:
+                return (
+                    title: "Vui lòng cho biết tuổi quốc tế hiện tại 🎂",
+                    subtitle: "Xác định xem bạn có đủ điều kiện về độ tuổi để mở tài khoản miễn thuế không.",
+                    guide: "Tùy thuộc vào độ tuổi quốc tế của bạn, các sản phẩm và hạn mức ưu đãi có thể tham gia sẽ khác nhau."
+                )
+            case 3:
+                return (
+                    title: "Bạn có thu nhập trong kỳ tính thuế trước không? 💰",
+                    subtitle: "Kiểm tra xem bạn có thu nhập từ tiền lương hoặc kinh doanh trong năm ngoái không.",
+                    guide: "Nếu bạn có thu nhập vào năm ngoái, bạn có thể nhận được ưu đãi hạn mức tích lũy hưu trí lớn hơn."
+                )
+            case 4:
+                return (
+                    title: "Hình thức thu nhập của bạn là gì? 💼",
+                    subtitle: "Chọn nguồn thu nhập chính của bạn tại Hàn Quốc.",
+                    guide: "Chúng tôi sẽ căn chỉnh tiêu chí nộp tài liệu theo hình thức thu nhập của bạn (nhân viên văn phòng hoặc hộ kinh doanh)."
+                )
+            case 5:
+                return (
+                    title: "Thu nhập tổng hợp trước đó có từ 38 triệu KRW trở xuống? 📊",
+                    subtitle: "Xác nhận xem bạn có đủ điều kiện áp dụng hạn mức miễn thuế phổ thông hay không.",
+                    guide: "Tình trạng thuế tổng hợp là danh mục kiểm tra cuối cùng để nhận ưu đãi miễn thuế!"
+                )
+            default:
+                return (title: "", subtitle: "", guide: "")
+            }
+            
+        default: // "ko"
+            switch step {
+            case 1:
+                return (
+                    title: "한국 거주자이신가요? 🇰🇷",
+                    subtitle: "국내에 주소를 두거나 183일 이상 거소(체류)하고 계신지 확인합니다.",
+                    guide: "안녕하세요! 절세를 위해 고객님이 국내 거주 상태인지 똑 부러지게 확인해 드릴게요."
+                )
+            case 2:
+                return (
+                    title: "현재 만 나이를 알려주세요 🎂",
+                    subtitle: "비과세 계좌 가입에 적합한 연령 요건을 판별합니다.",
+                    guide: "만 나이에 따라서 가입할 수 있는 상품과 혜택 한도가 달라진답니다."
+                )
+            case 3:
+                return (
+                    title: "직전 과세기간에 소득이 있으셨나요? 💰",
+                    subtitle: "지난해 근로 소득이나 사업 소득이 발생했는지 체크합니다.",
+                    guide: "지난해 소득이 있으셨다면 연금저축 한도 혜택을 더 크게 받으실 수 있어요."
+                )
+            case 4:
+                return (
+                    title: "소득 형태가 어떻게 되시나요? 💼",
+                    subtitle: "국내에서 발생하는 주된 소득 형태를 선택해 주세요.",
+                    guide: "직장인과 개인 사업자 등 소득 방식에 맞춰 서류 제출 기준을 맞출게요."
+                )
+            case 5:
+                return (
+                    title: "직전 종합소득금액이 3,800만원 이하이신가요? 📊",
+                    subtitle: "비과세 한도를 늘려주는 '서민형 가입' 자격 요건을 판별합니다.",
+                    guide: "종합과세 여부는 비과세 혜택을 받기 위한 최종적인 체크 리스트입니다!"
+                )
+            default:
+                return (title: "", subtitle: "", guide: "")
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func flagButton(flag: String, langCode: String) -> some View {
+        Button {
+            selectedLanguage = langCode
+            let text = getTranslation(step: currentStep, lang: langCode).guide
+            speakText(text, lang: langCode)
+        } label: {
+            Text(flag)
+                .font(.system(size: 15))
+                .padding(4)
+                .background(selectedLanguage == langCode ? Color.imMint.opacity(0.18) : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+    }
+    
+    private func getOptionText(step: Int, optionIndex: Int, lang: String) -> String {
+        switch step {
+        case 1:
+            if optionIndex == 0 {
+                return lang == "ko" ? "👍 네, 거주 중입니다." : (lang == "en" ? "👍 Yes, I reside here." : (lang == "zh" ? "👍 是的，我在此居住。" : "👍 Vâng, tôi cư trú ở đây."))
+            } else {
+                return lang == "ko" ? "👎 아니요, 비거주자입니다." : (lang == "en" ? "👎 No, I do not reside here." : (lang == "zh" ? "👎 不，我不在此居住。" : "👎 Không, tôi không cư trú ở đây."))
+            }
+        case 2:
+            return lang == "ko" ? "나이 입력 완료" : (lang == "en" ? "Done Entering Age" : (lang == "zh" ? "完成输入年龄" : "Hoàn thành nhập tuổi"))
+        case 3:
+            if optionIndex == 0 {
+                return lang == "ko" ? "🙋‍♂️ 네, 소득이 있었습니다." : (lang == "en" ? "🙋‍♂️ Yes, I had income." : (lang == "zh" ? "🙋‍♂️ 是的，我有收入。" : "🙋‍♂️ Có, tôi có thu nhập."))
+            } else {
+                return lang == "ko" ? "🙅‍♂️ 아니요, 없었습니다." : (lang == "en" ? "🙅‍♂️ No, I did not." : (lang == "zh" ? "🙅‍♂️ 不，我没有。" : "🙅‍♂️ Không, tôi không có."))
+            }
+        case 5:
+            if optionIndex == 0 {
+                return lang == "ko" ? "⚠️ 네, 해당됩니다." : (lang == "en" ? "⚠️ Yes, applicable." : (lang == "zh" ? "⚠️ 是的，适用。" : "⚠️ Có, áp dụng."))
+            } else {
+                return lang == "ko" ? "✅ 아니요, 해당되지 않습니다." : (lang == "en" ? "✅ No, not applicable." : (lang == "zh" ? "✅ 不，不适用。" : "✅ Không, không 적용."))
+            }
+        default:
+            return ""
+        }
+    }
+    
+    private func getIncomeTypeText(type: IncomeType, lang: String) -> String {
+        switch type {
+        case .employed:
+            return lang == "ko" ? "🏢 근로 소득 (직장인)" : (lang == "en" ? "🏢 Earned Income (Employee)" : (lang == "zh" ? "🏢 工资收入 (上班族)" : "🏢 Thu nhập lương (Nhân viên)"))
+        case .selfEmployed:
+            return lang == "ko" ? "💼 사업 소득 (프리랜서/개인사업자)" : (lang == "en" ? "💼 Business Income (Freelancer/Self-employed)" : (lang == "zh" ? "💼 营业收入 (自由职业者/个体户)" : "💼 Thu nhập kinh doanh (Hộ kinh doanh)"))
+        case .none:
+            return ""
+        }
+    }
+    
+    private func getAgeLabel(age: Int, lang: String) -> String {
+        let suffix = lang == "ko" ? "세" : (lang == "en" ? "years" : (lang == "zh" ? "岁" : "tuổi"))
+        return "\(age) \(suffix)"
+    }
+    
+    private func getScannerButtonText(lang: String) -> String {
+        return lang == "ko" ? "신분증(외국인등록증) 스캔으로 자동 입력" : (lang == "en" ? "Scan ID card to autofill in 3s" : (lang == "zh" ? "扫描身份证自动填写" : "Quét thẻ căn cước tự động nhập"))
+    }
     
     // 아코디언 상태 보관
     @State private var expandedProducts: Set<String> = []
@@ -275,19 +505,47 @@ struct EligibilityView: View {
                                         .clipShape(Circle())
                                         .overlay(Circle().stroke(Color.imMint.opacity(0.4), lineWidth: 1.5))
                                     
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text("똑디의 자격진단 인터뷰")
-                                            .font(.caption.bold())
-                                            .foregroundStyle(Color.imMint)
-                                        Text(guideMessageForStep(currentStep))
-                                            .font(.system(size: 13))
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(2)
-                                            .fixedSize(horizontal: false, vertical: true)
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        HStack {
+                                            Text("똑디의 자격진단 인터뷰")
+                                                .font(.caption.bold())
+                                                .foregroundStyle(Color.imMint)
+                                            
+                                            Spacer()
+                                            
+                                            // 다국어 선택 국기 버튼 행
+                                            HStack(spacing: 6) {
+                                                flagButton(flag: "🇰🇷", langCode: "ko")
+                                                flagButton(flag: "🇺🇸", langCode: "en")
+                                                flagButton(flag: "🇨🇳", langCode: "zh")
+                                                flagButton(flag: "🇻🇳", langCode: "vi")
+                                            }
+                                        }
+                                        
+                                        HStack(alignment: .bottom, spacing: 8) {
+                                            Text(getTranslation(step: currentStep, lang: selectedLanguage).guide)
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundStyle(.primary)
+                                                .lineLimit(3)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                            
+                                            Spacer()
+                                            
+                                            Button {
+                                                let text = getTranslation(step: currentStep, lang: selectedLanguage).guide
+                                                speakText(text, lang: selectedLanguage)
+                                            } label: {
+                                                Image(systemName: "speaker.wave.2.fill")
+                                                    .font(.system(size: 10))
+                                                    .foregroundStyle(Color.imMint)
+                                                    .padding(6)
+                                                    .background(Color.imMint.opacity(0.12))
+                                                    .clipShape(Circle())
+                                            }
+                                        }
                                     }
-                                    Spacer()
                                 }
-                                .padding(14)
+                                .padding(12)
                                 .glassmorphicCard()
                                 .padding(.horizontal)
                                 
@@ -295,8 +553,8 @@ struct EligibilityView: View {
                                 ZStack {
                                     if currentStep == 1 {
                                         questionCard(
-                                            title: "한국 거주자이신가요? 🇰🇷",
-                                            subtitle: "국내에 주소를 두거나 183일 이상 거소(체류)하고 계신지 확인합니다."
+                                            title: getTranslation(step: 1, lang: selectedLanguage).title,
+                                            subtitle: getTranslation(step: 1, lang: selectedLanguage).subtitle
                                         ) {
                                             VStack(spacing: 12) {
                                                 // OCR 신분증 스캔 퀵 버튼 배치
@@ -306,7 +564,7 @@ struct EligibilityView: View {
                                                     HStack(spacing: 8) {
                                                         Image(systemName: "camera.viewfinder")
                                                             .font(.system(size: 13, weight: .bold))
-                                                        Text("신분증(외국인등록증) 스캔으로 자동 입력")
+                                                        Text(getScannerButtonText(lang: selectedLanguage))
                                                             .font(.system(size: 11, weight: .bold))
                                                     }
                                                     .foregroundStyle(Color.white)
@@ -317,11 +575,18 @@ struct EligibilityView: View {
                                                     .shadow(color: Color.imMint.opacity(0.3), radius: 4, y: 2)
                                                 }
                                                 .padding(.bottom, 6)
-                                                optionButton(title: "👍 네, 거주 중입니다.", isSelected: vm.isResident) {
+                                                
+                                                optionButton(
+                                                    title: getOptionText(step: 1, optionIndex: 0, lang: selectedLanguage),
+                                                    isSelected: vm.isResident
+                                                ) {
                                                     vm.isResident = true
                                                     nextStep()
                                                 }
-                                                optionButton(title: "👎 아니요, 비거주자입니다.", isSelected: !vm.isResident) {
+                                                optionButton(
+                                                    title: getOptionText(step: 1, optionIndex: 1, lang: selectedLanguage),
+                                                    isSelected: !vm.isResident
+                                                ) {
                                                     vm.isResident = false
                                                     nextStep()
                                                 }
@@ -330,11 +595,11 @@ struct EligibilityView: View {
                                         .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                                     } else if currentStep == 2 {
                                         questionCard(
-                                            title: "현재 만 나이를 알려주세요 🎂",
-                                            subtitle: "비과세 계좌 가입에 적합한 연령 요건을 판별합니다."
+                                            title: getTranslation(step: 2, lang: selectedLanguage).title,
+                                            subtitle: getTranslation(step: 2, lang: selectedLanguage).subtitle
                                         ) {
                                             VStack(spacing: 20) {
-                                                Text("\(vm.age) 세")
+                                                Text(getAgeLabel(age: vm.age, lang: selectedLanguage))
                                                     .font(.system(size: 40, weight: .black))
                                                     .foregroundStyle(Color.imMint)
                                                 
@@ -345,7 +610,7 @@ struct EligibilityView: View {
                                                 Button {
                                                     nextStep()
                                                 } label: {
-                                                    Text("나이 입력 완료")
+                                                    Text(getOptionText(step: 2, optionIndex: 0, lang: selectedLanguage))
                                                         .font(.subheadline.bold())
                                                         .foregroundStyle(.white)
                                                         .padding(.vertical, 12)
@@ -359,15 +624,21 @@ struct EligibilityView: View {
                                         .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                                     } else if currentStep == 3 {
                                         questionCard(
-                                            title: "작년에 소득이 있으셨나요? 💰",
-                                            subtitle: "세액공제 한도 및 자격 요건의 기준이 됩니다."
+                                            title: getTranslation(step: 3, lang: selectedLanguage).title,
+                                            subtitle: getTranslation(step: 3, lang: selectedLanguage).subtitle
                                         ) {
                                             VStack(spacing: 12) {
-                                                optionButton(title: "🙋‍♂️ 네, 소득이 있었습니다.", isSelected: vm.hadIncomeLastYear) {
+                                                optionButton(
+                                                    title: getOptionText(step: 3, optionIndex: 0, lang: selectedLanguage),
+                                                    isSelected: vm.hadIncomeLastYear
+                                                ) {
                                                     vm.hadIncomeLastYear = true
                                                     nextStep()
                                                 }
-                                                optionButton(title: "🙅‍♂️ 아니요, 없었습니다.", isSelected: !vm.hadIncomeLastYear) {
+                                                optionButton(
+                                                    title: getOptionText(step: 3, optionIndex: 1, lang: selectedLanguage),
+                                                    isSelected: !vm.hadIncomeLastYear
+                                                ) {
                                                     vm.hadIncomeLastYear = false
                                                     // 소득이 없으면 소득유형을 .none 으로 고정하고 Q5로 바로 건너뜀
                                                     vm.incomeType = .none
@@ -378,14 +649,14 @@ struct EligibilityView: View {
                                         .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                                     } else if currentStep == 4 {
                                         questionCard(
-                                            title: "소득 유형을 선택해주세요 💼",
-                                            subtitle: "직장 유형에 따른 정확한 절세 요건이 계산됩니다."
+                                            title: getTranslation(step: 4, lang: selectedLanguage).title,
+                                            subtitle: getTranslation(step: 4, lang: selectedLanguage).subtitle
                                         ) {
                                             VStack(spacing: 10) {
                                                 ForEach(IncomeType.allCases, id: \.self) { type in
-                                                    // '소득 없음'은 Q3에서 걸렀으므로 제외
                                                     if type != .none {
-                                                        optionButton(title: type.rawValue, isSelected: vm.incomeType == type) {
+                                                        let titleText = getIncomeTypeText(type: type, lang: selectedLanguage)
+                                                        optionButton(title: titleText, isSelected: vm.incomeType == type) {
                                                             vm.incomeType = type
                                                             nextStep()
                                                         }
@@ -396,15 +667,21 @@ struct EligibilityView: View {
                                         .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                                     } else if currentStep == 5 {
                                         questionCard(
-                                            title: "금융소득종합과세 대상인가요? 📊",
-                                            subtitle: "최근 3년 중 한 번이라도 연간 금융 소득(이자/배당)이 2천만 원을 초과했나요?"
+                                            title: getTranslation(step: 5, lang: selectedLanguage).title,
+                                            subtitle: getTranslation(step: 5, lang: selectedLanguage).subtitle
                                         ) {
                                             VStack(spacing: 12) {
-                                                optionButton(title: "⚠️ 네, 해당됩니다.", isSelected: vm.hasComprehensiveTax) {
+                                                optionButton(
+                                                    title: getOptionText(step: 5, optionIndex: 0, lang: selectedLanguage),
+                                                    isSelected: vm.hasComprehensiveTax
+                                                ) {
                                                     vm.hasComprehensiveTax = true
                                                     triggerDiagnosis()
                                                 }
-                                                optionButton(title: "✅ 아니요, 해당되지 않습니다.", isSelected: !vm.hasComprehensiveTax) {
+                                                optionButton(
+                                                    title: getOptionText(step: 5, optionIndex: 1, lang: selectedLanguage),
+                                                    isSelected: !vm.hasComprehensiveTax
+                                                ) {
                                                     vm.hasComprehensiveTax = false
                                                     triggerDiagnosis()
                                                 }
