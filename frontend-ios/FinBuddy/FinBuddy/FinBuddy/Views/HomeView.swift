@@ -23,6 +23,10 @@ struct HomeView: View {
     // 저축 의도 클릭 시 말풍선 안내 오버레이 문구
     @State private var transitionText: String? = nil
 
+    // 국적 및 닉네임 로컬 정보 연동
+    @AppStorage("fb_nickname") private var nickname: String = ""
+    @AppStorage("fb_nationality") private var nationality: String = "베트남"
+
     // 각 피드 카드 정보에 다국어 해설 번역 연계 키워드 추가
     private let items: [PolicyItem] = [
         PolicyItem(
@@ -254,9 +258,42 @@ struct HomeView: View {
         }
     }
     
+    private func flagForNationality(_ nation: String) -> String {
+        switch nation {
+        case "베트남": return "🇻🇳"
+        case "중국": return "🇨🇳"
+        case "필리핀": return "🇵🇭"
+        case "캄보디아": return "🇰🇭"
+        case "인도네시아": return "🇮🇩"
+        case "태국": return "🇹🇭"
+        default: return "🌍"
+        }
+    }
+
     // 의도 분기 선택 섹션
     private var intentBranchingSection: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // 사용자 맞춤 국적 환영 헤더
+            HStack(spacing: 10) {
+                Text(flagForNationality(nationality))
+                    .font(.title2)
+                    .padding(8)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    let displayName = nickname.isEmpty ? "고객님" : "\(nickname)님"
+                    Text("반가워요, \(displayName)! 👋")
+                        .font(.system(size: 14, weight: .bold))
+                    Text("FinBuddy와 함께하는 \(nationality) 맞춤 금융 가이드")
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 6)
+
             Text("무엇을 하고 싶으세요? 🤔")
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(.primary)

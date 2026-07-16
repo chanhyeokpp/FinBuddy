@@ -11,6 +11,7 @@ struct MyPageView: View {
     @AppStorage("fb_pref_language") private var prefLanguage: String = "ko"
     @AppStorage("fb_monthly_savings") private var monthlySavings: Double = 1000000.0
     @AppStorage("fb_entry_date_interval") private var entryDateInterval: Double = Date().timeIntervalSince1970
+    @AppStorage("fb_nationality") private var nationality: String = "베트남"
 
     var body: some View {
         NavigationStack {
@@ -51,6 +52,29 @@ struct MyPageView: View {
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                                         .stroke(Color.white.opacity(0.15), lineWidth: 1)
                                 )
+                        }
+                        
+                        // A-2. 국적 선택
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("국적 (Nationality)")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            
+                            Picker("국적", selection: $nationality) {
+                                Text("베트남 🇻🇳").tag("베트남")
+                                Text("중국 🇨🇳").tag("중국")
+                                Text("필리핀 🇵🇭").tag("필리핀")
+                                Text("캄보디아 🇰🇭").tag("캄보디아")
+                                Text("인도네시아 🇮🇩").tag("인도네시아")
+                                Text("태국 🇹🇭").tag("태국")
+                                Text("기타 국적 🌍").tag("기타")
+                            }
+                            .pickerStyle(.menu)
+                            .tint(.imMint)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                         
                         // B. 비자 유형 선택
